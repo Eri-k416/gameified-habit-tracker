@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+    @keyframes advanceDay {
+        20% {
+            transform: scaleX(10000%);
+            left: 100%
+        }
+        100% {
+            
+            transform-origin: right center;
+            transform: scaleX(1) translateX(250%);
+        }
+
+    }
+
+    --animate-advanceDay: advanceDay 2s ease-out 0s 1 normal none;
+}
