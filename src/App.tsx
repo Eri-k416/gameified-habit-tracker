@@ -5,6 +5,9 @@ import trash from './assets/trash.png';
 import restore from "./assets/restore.png"
 
 //logic ===============================================================================================
+
+// main structure of our player stats and
+// how much of stats a habit gives
 interface HabitStats {
   strength: number;
   dexterity: number;
@@ -19,6 +22,7 @@ interface HabitStats {
   creativity: number;
 }
 
+// structure of a habit JSON
 interface HabitFormat {
   id: string;
   title: string;
@@ -27,11 +31,14 @@ interface HabitFormat {
   stats: HabitStats;
 }
 
+// create new HabitStats Object
 function initHabitStats(): HabitStats {
   return {
     strength:0 ,dexterity:0, constitution:0, intelligence:0, wisdom: 0, charisma: 0, spiritual: 0, emotional:0, reputation:0, discipline: 0, creativity: 0,
     };
 }
+
+// random generations
 function generateId(length: number) {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -49,8 +56,10 @@ function getRandomInt(minn: number, maxx: number) {
   return Math.floor(Math.random() * (maxx - minn + 1)) + minn;
 };
 
+// to be called for all the Logic in the system
 function useLogicPackage() {
 
+  // contains all habit informations
   const [habitArr, setHabitArr] = useState<HabitFormat[]>(() => {
     const habitArrStorage = localStorage.getItem('habits');
     return habitArrStorage? JSON.parse(habitArrStorage) : [];
@@ -59,6 +68,7 @@ function useLogicPackage() {
     localStorage.setItem('habits', JSON.stringify(habitArr));
   }, [habitArr]);
   
+  // day counter
   const [day, setDay] = useState<number>(() => {
     const day = localStorage.getItem('day');
     return day? JSON.parse(day) : 1;
@@ -67,6 +77,7 @@ function useLogicPackage() {
     localStorage.setItem('day', JSON.stringify(day));
   }, [day]);
 
+  // player current stats
   const [currentStats, setCurrentStats] = useState<HabitStats>(() => {
     const currentStats= localStorage.getItem('currentStats');
     return currentStats? JSON.parse(currentStats) : initHabitStats()
@@ -76,6 +87,7 @@ function useLogicPackage() {
     localStorage.setItem('currentStats', JSON.stringify(currentStats));
   }, [currentStats]);
 
+  // counts sum of every stats in every habits of a habit array
   function countStats(habitArr: HabitFormat[]): HabitStats {
     const totalStats: HabitStats = initHabitStats();
 
@@ -91,14 +103,17 @@ function useLogicPackage() {
     return totalStats;
   }
 
+  // player stats for today before submitting, will be appended to currentStats if day is advanced
   const [todayStats, setTodayStats] = useState<HabitStats>(() => {
     return countStats(habitArr);
   });
 
+  // adding habit after submitting habit form
   function addHabit(habit: HabitFormat) {
     setHabitArr([...habitArr, habit]);
   }
 
+  // setting all habits as undone, used for advancing the day or resetting
   function undoAllHabit() {
     const newHabitarr = habitArr.map((habit) => {
       if (habit.isFinished) {
@@ -111,15 +126,18 @@ function useLogicPackage() {
     setHabitArr(newHabitarr);
   }
 
+  // highest point in player stats
   const [maxPoint, setMaxPoint] = useState<number>([...Object.values(currentStats), ...Object.values(todayStats)].reduce((prev, next) => {
     return Math.max(prev, next);
   }, 0));
 
+  // total point from all stats
   const [totalPoint, setTotalPoint] = useState<number>([...Object.values(currentStats), ...Object.values(todayStats)].reduce(
     (accu, value) => {
       return accu + value;
   }, 0));
 
+  // counts sum of all stats from current plus today
   function updateXp(nextTodayStats: HabitStats) {
     setTotalPoint([...Object.values(currentStats), ...Object.values(nextTodayStats)].reduce(
       (accu, value) => {
@@ -127,6 +145,7 @@ function useLogicPackage() {
       }, 0));
   }
 
+  // appending stats from today to current
   function addStats() {
     const newCurrentStats = {...currentStats};
     for (const key of Object.keys(todayStats)) {
@@ -135,11 +154,14 @@ function useLogicPackage() {
 
     setCurrentStats(newCurrentStats);
   }
-   
+  
+  // finding maximum point of all stats
   function calcMaxPoint(nextTodayStats: HabitStats) {
     setMaxPoint(Math.max(...Object.values(currentStats), ...Object.values(nextTodayStats), 1));
   }
 
+  // if user clicks a check button from one of the habit element
+  // marks habit as finished, then updates todaystats and temporarily updates max point and total point
   function handleHabitChecks(id: string) {
     const newHabitArr = habitArr.map((habit) => {
       if (habit.id == id) {
@@ -159,6 +181,8 @@ function useLogicPackage() {
 
   }
 
+  // if the user clicks the trash button on a habit element
+  // will delete the habit off of the habit array, and then updates today's stats and temporarily updates max point and total point
   function handleRemoveHabit(id: string) {
     const newHabitArr = habitArr.filter((habit) => {
       return habit.id !== id;
@@ -172,6 +196,8 @@ function useLogicPackage() {
     updateXp(nextTodayStats);
   }
 
+  // when user submits habit data
+  // get form data and then transforming it into a HabitFormat object, and then adding it to the habit array
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
 
@@ -197,14 +223,11 @@ function useLogicPackage() {
 
         };
         addHabit(newHabit);
-        const data = Object.fromEntries(formData.entries());
-        console.log("Added data")
-        console.log(data);
-        console.log(habitArr);
-
         e.currentTarget.reset();
   };
 
+  // when the user clicks advance day and submit stats
+  // appends stats from today to current, undo all habits, and update today stats to be an empty HabitStats object
   function handleAdvanceDay() {
     setDay(day + 1);
 
@@ -213,6 +236,8 @@ function useLogicPackage() {
     setTodayStats(initHabitStats());
   }
 
+  // when the user clicks reset stats
+  // sets the day to day 1, undo all habits, set today stats and current stats to be an empty HabitStats object, and set the max and total point to be 0
   function handleResetStats() {
     const emptyStats = initHabitStats();
 
@@ -224,6 +249,7 @@ function useLogicPackage() {
     setTotalPoint(0);
   };
 
+  // pass all of the states and functions to the top component
   return {
     handleAdvanceDay,
     day,
@@ -240,6 +266,8 @@ function useLogicPackage() {
 }
 
 // visuals ============================================================================================
+
+// parameters for a FormInput component
 interface FormField {
   name: string;
   label: string;
@@ -251,7 +279,7 @@ interface FormField {
 }
 
 function FormInput({name, label, type, errorMessage = "", min = 0, max = 0, value=0}: FormField) {
-
+  
   const [isNotFirstEnter, setIsNotFirstEnter] = useState<boolean>(false);
   const [FieldInput, setFieldInput] = useState<string>(type == "range"? "0" : "");
   const isError: string = isNotFirstEnter && FieldInput.length < 1 ? '' : 'opacity-0'; 
@@ -299,18 +327,19 @@ interface FormHandlers {
 }
 
 function HabitForm({setIsFormActive, handleSubmit}: FormHandlers) {
-
+  // for referring to an element in the component
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: globalThis.MouseEvent) {
+      // if there is an overlay AND outside of the overlay is clicked
       if (overlayRef.current && !overlayRef.current.contains(e.target as Node)) {
         setIsFormActive(false);
       } 
     } 
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
+    return () => { // to delete the listener once the overlay dismounts from DOM (disappears)
       document.removeEventListener("mousedown", handleClickOutside);
     }
 
@@ -324,13 +353,13 @@ function HabitForm({setIsFormActive, handleSubmit}: FormHandlers) {
     '
     >
       <div className='flex flex-col border gap-2 p-4 w-[50%] max-sm:w-full bg-white rounded-2xl'
-      ref={overlayRef}
+      ref={overlayRef} // overlayRef reference
       >
         <h1 className='text-3xl font-bold'>Input new Habit</h1>
         <form className='flex flex-col gap'
         onSubmit={(e) => {
           e.preventDefault();
-          handleSubmit(e)
+          handleSubmit(e) // pass data of e
           setIsFormActive(false);
         }}
 
@@ -363,8 +392,10 @@ function HabitForm({setIsFormActive, handleSubmit}: FormHandlers) {
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+// tuple for every stat and its associated color
 type statElementArrFormat = [string, string];
 
+// parameter for CharacterProfile component
 interface ProfileParms {
   currentStats: HabitStats;
   todayStats: HabitStats;
@@ -373,14 +404,13 @@ interface ProfileParms {
 }
 
 function CharacterProfile({currentStats, todayStats, maxPoint, totalPoint}: ProfileParms) {
-  
+  // counting for xp bar width and level-------------------------------------
   let level: number = 1;
 
   let xpCap: number = 100;
   const xpCapMulti: number = 210/100;
 
   while (totalPoint > xpCap) {
-    console.log("multiplying");
     xpCap *= xpCapMulti;
     level += 1
   }
@@ -388,7 +418,8 @@ function CharacterProfile({currentStats, todayStats, maxPoint, totalPoint}: Prof
   xpCap = Math.ceil(xpCap);
 
   const percentage: number = totalPoint / xpCap * 100;
-
+  
+  // ---------------------------------------------------------------------------
   const statTableKeys = [
     "strength" , "dexterity", "constitution", "intelligence", "wisdom", "charisma", "spiritual", "emotional", "reputation", "discipline", "creativity"
   ]
@@ -413,7 +444,7 @@ function CharacterProfile({currentStats, todayStats, maxPoint, totalPoint}: Prof
         <th className='min-w-[25%]'><strong>{stat[0]} : </strong></th>
         <td className='flex grow'><div className={'bg-linear-to-r ' + stat[1]}
         style={{
-          width: `${((point) / maxPoint * 100)? (point) / maxPoint * 100 : 0.1}%`,
+          width: `${((point) / maxPoint * 100)? (point) / maxPoint * 100 : 0.1}%`, // width based on ratio of this stat's point and the maximum point from all stats
           transition: 'all 0.5s ease'
         }as React.CSSProperties}></div></td>
         <td>{point}</td>
@@ -445,6 +476,7 @@ function CharacterProfile({currentStats, todayStats, maxPoint, totalPoint}: Prof
 }
 // ------------------------------------------------------------------------------------------------------------------
 
+// parameter for a habit element
 interface HabitViewParams {
   id: string;
   title: string; 
@@ -497,12 +529,14 @@ function Habit({id, title, hour,isFinished ,handleHabitCheck, handleRemoveCheck}
   )
 }
 
+// parameter for HabitContainer
 interface habitViewHandlers {
   habitArr: HabitFormat[];
   handleHabitCheck: (id: string) => void;
   handleRemoveCheck: (id: string) => void;
 }
 
+// to render all habit elements
 function HabitContainer({habitArr, handleHabitCheck, handleRemoveCheck} : habitViewHandlers) {
   const habitElements = habitArr.map((habit) => {
     return <Habit key={habit.id} id={habit.id} title={habit.title} isFinished={habit.isFinished} hour={habit.hour} handleHabitCheck={handleHabitCheck} handleRemoveCheck={handleRemoveCheck}/>
@@ -524,6 +558,7 @@ interface ResetConfirmParams {
 }
 
 function ResetConfirm({setIsResetConfirmActive, handleResetStats}: ResetConfirmParams) {
+  // same thing as form outside overlay click, but for resetConfirm
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -572,12 +607,13 @@ function ResetConfirm({setIsResetConfirmActive, handleResetStats}: ResetConfirmP
 
 function Content() {
   const {handleAdvanceDay, day, habitArr, handleSubmit, handleHabitChecks, 
-    handleRemoveHabit, todayStats, currentStats ,maxPoint ,totalPoint, handleResetStats} = useLogicPackage();
+    handleRemoveHabit, todayStats, currentStats ,maxPoint ,totalPoint, handleResetStats} = useLogicPackage(); // unpackage all logic
 
   const [isFormActive , setIsFormActive] = useState<boolean>(false)
   const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
   const [isResetConfirmActive, setIsResetConfirmActive] = useState<boolean>(false);
-
+  
+  // handles user clicking advance day logic and anim
   function handleAdvanceDayAnim() {
     setIsAdvancing(true);
 
@@ -590,6 +626,7 @@ function Content() {
     }, 1000);
   };
 
+  // handles user clicking reset stats logic and anim
   function handleResetStatsAnim() {
     setIsAdvancing(true);
     setIsResetConfirmActive(false);
@@ -632,7 +669,9 @@ function Content() {
         
       </main>
       { isFormActive && <HabitForm setIsFormActive={setIsFormActive} handleSubmit={handleSubmit}/> }
+      {/* enables only when user clicked on the plus element */}
       { isResetConfirmActive && <ResetConfirm setIsResetConfirmActive={setIsResetConfirmActive} handleResetStats={handleResetStatsAnim}/> }
+      {/* enables only when user clicked on the reset stats button */}
     </>
   );
 }
