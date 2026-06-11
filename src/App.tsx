@@ -659,9 +659,9 @@ function Content() {
           >Reset Stats</button>
         </aside>
         <article className=' min-h-10 grow-5 basis-50 flex flex-col p-4 items-center gap-2'>
-          <button className='rounded-full w-15 h-15 border relative'
+          <button className='rounded-full w-15 h-15 border relative flex justify-center items-center'
           onClick={() => setIsFormActive(true)}
-          ><h1 className='text-5xl font-bold absolute transform-[translate(12px,-30px)]'>+</h1></button>
+          ><h1 className='text-5xl font-bold'>+</h1></button>
           {/* put habits here */}
           <HabitContainer habitArr={habitArr} handleRemoveCheck={handleRemoveHabit} handleHabitCheck={handleHabitChecks} />
           
